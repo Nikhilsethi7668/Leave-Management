@@ -88,6 +88,23 @@ export const login = async (req, res) => {
   }
 };
 
+export const me = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select("-password")
+      .populate("department");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    res.status(500).json({
+      message: "Authentication failed, Please login again",
+    });
+  }
+};
+
 //Approve request - Admin will approve user account
 export const approveUser = async (req, res) => {
   try {

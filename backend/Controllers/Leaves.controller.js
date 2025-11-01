@@ -2,23 +2,35 @@ import User from "../Models/User.js";
 import Leave from "../Models/Leave.js";
 import LeaveAnalytics from "../Models/LeaveAnalytics.js";
 import TotalLeaves from "../Models/TotalLeaves.js";
+import { sendEmail } from "../Services/Email.Service.js";
+import LeaveCategory from "../Models/LeaveCategory.js";
 
 //Set total leaves for all users - only admin/superadmin can do this
 export const setTotalLeaves = async (req, res) => {
   try {
-    const { totalAnnualPaidLeaves } = req.body;
+    const { totalAnnualPaidLeaves, departmentId } = req.body;
     if (totalAnnualPaidLeaves == null || totalAnnualPaidLeaves < 0) {
       return res.status(400).json({
         message: "Total annual paid leaves must be a non-negative number",
       });
     }
+    if (!departmentId) {
+      return res.status(400).json({
+        message: "Department ID is required",
+      });
+    }
 
-    let totalLeavesRecord = await TotalLeaves.findOne();
+    let totalLeavesRecord = await TotalLeaves.findOne({
+      department: departmentId,
+    });
     if (totalLeavesRecord) {
       totalLeavesRecord.totalAnnualPaidLeaves = totalAnnualPaidLeaves;
       await totalLeavesRecord.save();
     } else {
-      totalLeavesRecord = await TotalLeaves.create({ totalAnnualPaidLeaves });
+      totalLeavesRecord = await TotalLeaves.create({
+        totalAnnualPaidLeaves,
+        department: departmentId,
+      });
     }
     return res
       .status(200)
@@ -132,8 +144,14 @@ export const applyForLeave = async (req, res) => {
         .json({ message: "Half-day period must be specified" });
     }
 
+    const userId = req.user.id;
+    // minimal user info for email content
+    const applicant = await User.findById(userId).select(
+      "name email post Department"
+    );
+
     const newLeave = await Leave.create({
-      user: req.user.id,
+      user: userId,
       leaveType,
       durationType,
       startDate,
@@ -144,9 +162,50 @@ export const applyForLeave = async (req, res) => {
       description: description || "",
       requestForPaidLeave:
         requestForPaidLeave !== undefined ? requestForPaidLeave : true,
+      appliedAt: new Date(),
+      status: "pending",
     });
 
     await newLeave.save();
+
+    // notify admins + superAdmins
+    try {
+      const admins = await User.find({
+        role: { $in: ["admin", "superAdmin"] },
+      }).select("email name");
+      const adminEmails = admins.map((a) => a.email).filter(Boolean);
+
+      if (adminEmails.length > 0) {
+        const subject = `New leave request from ${
+          applicant?.name || "Employee"
+        }`;
+        const text = [
+          `Applicant: ${applicant?.name || "N/A"} (${
+            applicant?.email || "N/A"
+          })`,
+          `Post/Dept: ${applicant?.post || ""}`,
+          `Type: ${leaveType}`,
+          `Duration: ${durationType}`,
+          `Start: ${startDate}`,
+          `End: ${endDate || startDate}`,
+          `Days: ${numberOfDays}`,
+          `Reason: ${description || "No reason provided"}`,
+          `Status: Pending`,
+        ].join("\n");
+
+        // send but don't block success response if it fails
+        await sendEmail({
+          to: adminEmails,
+          subject,
+          text,
+          category: "Leave Request",
+        });
+      }
+    } catch (emailErr) {
+      console.error("Failed sending leave-notification to admins:", emailErr);
+      // do not fail the API; just log
+    }
+
     return res.status(201).json({ message: "Leave application submitted" });
   } catch (error) {
     console.error("Error applying for leave:", error);
@@ -197,23 +256,31 @@ export const reviewLeaveApplication = async (req, res) => {
         .status(400)
         .json({ message: "Leave application has already been reviewed" });
     }
-    if (status === "approved") {
-      const leaveAnalytics = await LeaveAnalytics.findOne({ user: leave.user });
-      
-      if (leaveAnalytics) {
 
-        leaveAnalytics.totalLeavesTaken += leave.numberOfDays;
+    if (status === "approved") {
+      const leaveAnalytics = await LeaveAnalytics.findOne({
+        user: leave.user._id,
+      });
+
+      if (leaveAnalytics) {
+        leaveAnalytics.totalLeavesTaken =
+          (leaveAnalytics.totalLeavesTaken || 0) + (leave.numberOfDays || 0);
         if (leave.category && leave.category.bonusLeaves) {
-            leaveAnalytics.totalLeavesAllocated += leave.category.bonusLeaves;
-          }
+          leaveAnalytics.totalLeavesAllocated =
+            (leaveAnalytics.totalLeavesAllocated || 0) +
+            leave.category.bonusLeaves;
+        }
         if (leave.leaveType === "paid") {
-          leaveAnalytics.totalPaidLeavesTaken += leave.numberOfDays;
-          
+          leaveAnalytics.totalPaidLeavesTaken =
+            (leaveAnalytics.totalPaidLeavesTaken || 0) +
+            (leave.numberOfDays || 0);
           leaveAnalytics.paidLeavesRemaining =
-            leaveAnalytics.totalLeavesAllocated -
-            leaveAnalytics.totalPaidLeavesTaken;
+            (leaveAnalytics.totalLeavesAllocated || 0) -
+            (leaveAnalytics.totalPaidLeavesTaken || 0);
         } else if (leave.leaveType === "unpaid") {
-          leaveAnalytics.totalUnpaidLeavesTaken += leave.numberOfDays;
+          leaveAnalytics.totalUnpaidLeavesTaken =
+            (leaveAnalytics.totalUnpaidLeavesTaken || 0) +
+            (leave.numberOfDays || 0);
         }
         leaveAnalytics.lastUpdated = new Date();
         await leaveAnalytics.save();
@@ -225,6 +292,35 @@ export const reviewLeaveApplication = async (req, res) => {
     leave.reviewer = req.user.id;
     leave.reviewedAt = new Date();
     await leave.save();
+
+    // notify the candidate about the decision
+    try {
+      const recipient = leave.user?.email;
+      if (recipient) {
+        const subject = `Your leave request has been ${status}`;
+        const text = [
+          `Hi ${leave.user?.name || ""},`,
+          `Your leave request for ${leave.startDate} to ${
+            leave.endDate || leave.startDate
+          } (${leave.numberOfDays} day(s)) has been ${status}.`,
+          `Reviewer note: ${review || "No note provided"}`,
+          `If approved: Thank you.`,
+          `If rejected: Please contact your manager for details.`,
+        ].join("\n\n");
+
+        await sendEmail({
+          to: [recipient],
+          subject,
+          text,
+          category: "Leave Review",
+        });
+      }
+    } catch (emailErr) {
+      console.error(
+        "Failed sending leave-review email to candidate:",
+        emailErr
+      );
+    }
 
     return res
       .status(200)

@@ -10,16 +10,22 @@ import leaveRoutes from "./Routes/Leaves.routes.js";
 
 const app = express();
 dotenv.config();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5174",
+    credentials: true,
+  })
+);
 app.use(cookieParser());
 app.use(express.json());
 
 //All routes here
 app.use("/api/users", userRoutes);
 app.use("/api/departments", departmentRoutes);
+app.use("/api/leaves", leaveRoutes);
 
 // Connect to MongoDB
 try {

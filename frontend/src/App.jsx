@@ -1,19 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import { Router } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom';
+import Login from './pages/Login';
+import MainLayout from './utils/MainLayout';
+import Dashboard from './pages/Dashboard';
+import ApplyLeave from './pages/ApplyLeave';
+import LeaveHistory from './pages/LeaveHistory';
+import { ProtectedRoute, AdminRoute } from './components/protected-routes/ProtectedRoute';
 
 function App() {
-
   return (
-    <RouterProvider>
-      <Router>
+    <Routes>
+      <Route path="/authenticate" element={<Login />} />
 
-      </Router>
+      {/* Protected Routes */}
+      <Route path="/" element={
+        <ProtectedRoute>
+          <MainLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Dashboard />} />
+        <Route path="apply" element={<ApplyLeave />} />
+        <Route path="history" element={<LeaveHistory />} />
 
-    </RouterProvider>
-  )
+        {/* Admin Only Routes */}
+        <Route path="admin" element={
+          <AdminRoute>
+            <div>Admin Panel</div>
+          </AdminRoute>
+        } />
+      </Route>
+
+      {/* Handle all other routes */}
+      <Route path="*" element={<div>404 Not Found</div>} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;

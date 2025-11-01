@@ -13,9 +13,9 @@ const UserSchema = new mongoose.Schema(
 
     post: { type: String, default: "" },
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
-    
+
     joinedAt: { type: Date, default: Date.now },
-    isActive: { type: Boolean, default: true },
+    isActive: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
