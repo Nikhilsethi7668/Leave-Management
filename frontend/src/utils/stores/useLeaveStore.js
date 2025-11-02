@@ -1,8 +1,25 @@
-// src/stores/useLeaveStore.js
 import { create } from "zustand";
 import api from "../axiosInstance";
 
 export const useLeaveStore = create((set, get) => ({
+  updateAnnualLeaveQuota: async (departmentId, totalAnnualPaidLeaves) => {
+    try {
+      const { data } = await api.post("/leaves/setTotalLeaves", {
+        departmentId,
+        totalAnnualPaidLeaves,
+      });
+      alert(data.message || "Annual leave quota updated successfully!");
+      await get().getAdminAnalytics();
+      return data;
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to update leave quota";
+      alert(msg);
+      throw error;
+    }
+  },
   createLeaveCategory: async (payload) => {
     const { data } = await api.post("/leaves/categories", payload);
     await get().loadLeaveCategories();

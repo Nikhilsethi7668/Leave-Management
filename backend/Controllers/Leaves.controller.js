@@ -1,12 +1,14 @@
 import User from "../Models/User.js";
 import Leave from "../Models/Leave.js";
 import LeaveAnalytics from "../Models/LeaveAnalytics.js";
-import TotalLeaves from "../Models/TotalLeaves.js";
+import TotalLeavesByCategory from "../Models/TotalLeaves.js";
 import { sendEmail } from "../Services/Email.Service.js";
 import LeaveCategory from "../Models/LeaveCategory.js";
 
+import TotalAnnualLeaves from "../Models/TotalAnnualLeaves.js";
+
 //Set total leaves for all users - only admin/superadmin can do this
-export const setTotalLeaves = async (req, res) => {
+export const setTotalLeavesByCategory = async (req, res) => {
   try {
     const { totalAnnualPaidLeaves, departmentId } = req.body;
     if (totalAnnualPaidLeaves == null || totalAnnualPaidLeaves < 0) {
@@ -42,6 +44,8 @@ export const setTotalLeaves = async (req, res) => {
     });
   }
 };
+
+export const setTotalAnnualLeaves = async (req, res) => {};
 
 //Create Leaves Cateegory - only admin/superadmin can do this
 export const createLeaveCategory = async (req, res) => {

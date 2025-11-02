@@ -39,7 +39,10 @@ export const signup = async (req, res) => {
       department: departmentId,
     });
     await newUser.save();
-    return res.status(201).json({ message: "User registered successfully" });
+    return res.status(201).json({
+      message:
+        "User registered successfully ! Request sent to admin for approval",
+    });
   } catch (error) {
     console.error("Error during user signup:", error);
     res.status(500).json({
@@ -114,17 +117,23 @@ export const approveUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
     user.isActive = true;
     await user.save();
     const totalLeaveData = await TotalLeaves.findOne().sort({ createdAt: -1 });
 
-    await LeaveAnalytics.create({
-      user: user._id,
-      totalLeavesAllocated: totalLeaveData?.totalAnnualPaidLeaves,
-      leavesTaken: 0,
-      leavesRemaining: 0,
-    });
+    const leaveAnalytics = await LeaveAnalytics.findOne({ user: user._id });
+    if (!leaveAnalytics) {
+      await LeaveAnalytics.create({
+        user: user._id,
+        totalLeavesAllocated: totalLeaveData?.totalAnnualPaidLeaves,
+        totalLeavesTaken: 0,
+        totalPaidLeavesTaken: 0,
+        totalUnpaidLeavesTaken: 0,
+        // paidLeavesRemaining: totalLeaveData?.totalAnnualPaidLeaves,
+        leavesRemaining: totalLeaveData?.totalAnnualPaidLeaves,
+        lastUpdated: new Date(),
+      });
+    }
     return res.status(200).json({ message: "User approved successfully" });
   } catch (error) {
     console.error("Error during user approval:", error);
@@ -164,8 +173,25 @@ export const deactivateUser = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password").populate("department");
-    return res.status(200).json({ users });
+    // Pagination params
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const skip = (page - 1) * limit;
+
+    const totalUsers = await User.countDocuments();
+    const users = await User.find()
+      .select("-password")
+      .populate("department")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      docs: users,
+      totalPages: Math.ceil(totalUsers / limit),
+      page,
+      totalUsers,
+    });
   } catch (error) {
     console.error("Error fetching all users:", error);
     res.status(500).json({

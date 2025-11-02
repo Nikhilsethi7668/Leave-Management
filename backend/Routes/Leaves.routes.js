@@ -1,7 +1,6 @@
 import express from "express";
 const router = express.Router();
 import {
-  setTotalLeaves,
   createLeaveCategory,
   getAllLeaveCategories,
   getAllLeaveApplications,
@@ -14,11 +13,15 @@ import {
   getAllUpcomingLeave,
   deleteLeaveApplication,
   deleteLeaveCategory,
+  setTotalLeavesByCategory,
+  setTotalAnnualLeaves,
 } from "../Controllers/Leaves.controller.js";
 import { auth, isAdmin } from "../Middlewares/auth.middleware.js";
 
 // Set total leaves for all users - only admin/superadmin can do this
-router.post("/total-leaves", auth, isAdmin, setTotalLeaves);
+router.post("/total-leaves", auth, isAdmin, setTotalLeavesByCategory);
+
+router.post("/setTotalAnnualLeaves", auth, isAdmin, setTotalAnnualLeaves);
 
 // Create Leave Category - only admin/superadmin can do this
 router.post("/categories", auth, isAdmin, createLeaveCategory);
