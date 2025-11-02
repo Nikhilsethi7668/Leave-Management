@@ -9,30 +9,37 @@ import {
   applyForLeave,
   reviewLeaveApplication,
   getLeaveHistoryForUser,
+  getAdminAnalytics,
+  getPendingLeaves,
 } from "../Controllers/Leaves.controller.js";
-import { isAdmin } from "../Middlewares/auth.middleware.js";
+import { auth, isAdmin } from "../Middlewares/auth.middleware.js";
 
 // Set total leaves for all users - only admin/superadmin can do this
-router.post("/total-leaves", isAdmin, setTotalLeaves);
+router.post("/total-leaves", auth, isAdmin, setTotalLeaves);
 
 // Create Leave Category - only admin/superadmin can do this
-router.post("/categories", isAdmin, createLeaveCategory);
+router.post("/categories", auth, isAdmin, createLeaveCategory);
+
+// Get Admin Analytics]
+router.get("/analytics/admin", auth, isAdmin, getAdminAnalytics);
+
+router.get("/pending", auth, isAdmin, getPendingLeaves);
 
 // Get all Leave Categories
-router.get("/categories", getAllLeaveCategories);
+router.get("/categories", auth, getAllLeaveCategories);
 
-router.get("/applications", isAdmin, getAllLeaveApplications);
+router.get("/applications", auth, isAdmin, getAllLeaveApplications);
 
 // Apply for leave - accessible to all authenticated users
-router.post("/apply", applyForLeave);
+router.post("/apply", auth, applyForLeave);
 
 // Review leave application - only admin/superadmin can do this
-router.patch("/review/:leaveId", isAdmin, reviewLeaveApplication);
+router.post("/review/:leaveId", auth, isAdmin, reviewLeaveApplication);
 
 // Get leave history for a specific user - accessible to admin/superadmin and the user themselves
-router.get("/history/:userId", getLeaveHistoryForUser);
+router.get("/history/:userId", auth, getLeaveHistoryForUser);
 
 // Get Leave Analytics for a specific user
-router.get("/analytics/:userId", getLeaveAnalyticsForUser);
+router.get("/analytics/:userId", auth, getLeaveAnalyticsForUser);
 
 export default router;

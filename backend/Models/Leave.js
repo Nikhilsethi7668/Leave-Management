@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 
 const LeaveSchema = new mongoose.Schema(
   {
@@ -31,8 +32,13 @@ const LeaveSchema = new mongoose.Schema(
     reviewedAt: { type: Date },
     reviewer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     review: { type: String, default: "" },
+    isPaid: { type: Boolean, default: false },
+    note: { type: String, default: "" },
+    reason: { type: String, default: "" },
   },
   { timestamps: true }
 );
+
+LeaveSchema.plugin(mongoosePaginate);
 
 export default mongoose.model("Leave", LeaveSchema);

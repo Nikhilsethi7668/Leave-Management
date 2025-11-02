@@ -1,17 +1,26 @@
-import { use } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '../../utils/stores/useAuthStore';
+// src/components/ProtectedRoute.jsx
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuthStore } from "../../utils/stores/useAuthStore";
 
+export default function ProtectedRoute({ children }) {
+    const user = useAuthStore((s) => s.user);
+    const loaded = useAuthStore((s) => s.loaded);
 
-// Protected route for authenticated users
-export const ProtectedRoute = ({ children }) => {
-    const isAuthenticated = useAuthStore.getState().user;
+    if (!loaded) {
+        return (
+            <div className="p-6 text-center">
+                Loading...
+            </div>
+        );
+    }
 
-    return isAuthenticated ? children : <Navigate to="/authenticate" replace />;
-};
-export const AdminRoute = ({ children }) => {
-    const isAuthenticated = localStorage.getItem('token');
-    const userRole = localStorage.getItem('userRole'); // Assuming you store role
+    if (!user) {
+        return <Navigate to="/authenticate" replace />;
+    }
+    if (user.role == "admin" || user.role == "superadmin") {
+        return <Navigate to="/admin" replace />;
+    }
 
-    return isAuthenticated && userRole === 'admin' ? children : <Navigate to="/" replace />;
-};
+    return children ?? <Outlet />;
+}

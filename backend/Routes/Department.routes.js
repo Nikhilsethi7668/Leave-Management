@@ -5,11 +5,11 @@ import {
   getAllDepartments,
   deleteDepartment,
 } from "../Controllers/department.controller.js";
-import { isAdmin } from "../Middlewares/auth.middleware.js";
+import { auth, isAdmin } from "../Middlewares/auth.middleware.js";
 
-router.post("/", isAdmin, createDepartment);
+router.post("/", auth, isAdmin, createDepartment);
 
 router.get("/", getAllDepartments);
 
-router.delete("/:id", isAdmin, deleteDepartment);
+router.delete("/:id", auth, isAdmin, deleteDepartment);
 export default router;

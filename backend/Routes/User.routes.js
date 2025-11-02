@@ -14,7 +14,7 @@ router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", logout);
 router.get("/me", auth, me);
-router.patch("/approve/:userId", isAdmin, approveUser);
-router.patch("/deactivate/:userId", isAdmin, deactivateUser);
+router.patch("/approve/:userId", auth, isAdmin, approveUser);
+router.patch("/deactivate/:userId", auth, isAdmin, deactivateUser);
 
 export default router;

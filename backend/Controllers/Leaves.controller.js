@@ -82,6 +82,44 @@ export const createLeaveCategory = async (req, res) => {
   }
 };
 
+//Admin Analytics to content to be provided
+
+export const getAdminAnalytics = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments({ role: "user" });
+    const totalLeavesApplied = await Leave.countDocuments();
+    const totalLeavesApproved = await Leave.countDocuments({
+      status: "approved",
+    });
+    const totalLeavesRejected = await Leave.countDocuments({
+      status: "rejected",
+    });
+    const totalLeavesPending = await Leave.countDocuments({
+      status: "pending",
+    });
+    //Should also show total upcoming approved leaves
+
+    const totalUpcomingApprovedLeaves = await Leave.countDocuments({
+      status: "approved",
+      startDate: { $gte: new Date() },
+    });
+
+    return res.status(200).json({
+      totalUsers,
+      totalLeavesApplied,
+      totalLeavesApproved,
+      totalLeavesRejected,
+      totalLeavesPending,
+      totalUpcomingApprovedLeaves,
+    });
+  } catch (error) {
+    console.error("Error fetching admin analytics:", error);
+    res.status(500).json({
+      message: "Unable to proceed right now, contact System Administrator",
+    });
+  }
+};
+
 export const getAllLeaveCategories = async (req, res) => {
   try {
     const categories = await LeaveCategory.find().sort({ createdAt: -1 });
@@ -237,7 +275,7 @@ export const getAllLeaveApplications = async (req, res) => {
 export const reviewLeaveApplication = async (req, res) => {
   try {
     const { leaveId } = req.params;
-    const { status, review } = req.body;
+    const { status, isPaid, note, reason } = req.body;
 
     if (!["approved", "rejected"].includes(status)) {
       return res
@@ -258,6 +296,8 @@ export const reviewLeaveApplication = async (req, res) => {
     }
 
     if (status === "approved") {
+      leave.isPaid = isPaid || false;
+      leave.note = note || "";
       const leaveAnalytics = await LeaveAnalytics.findOne({
         user: leave.user._id,
       });
@@ -285,10 +325,11 @@ export const reviewLeaveApplication = async (req, res) => {
         leaveAnalytics.lastUpdated = new Date();
         await leaveAnalytics.save();
       }
+    } else {
+      leave.reason = reason || "";
     }
 
     leave.status = status;
-    leave.review = review || "";
     leave.reviewer = req.user.id;
     leave.reviewedAt = new Date();
     await leave.save();
@@ -303,7 +344,7 @@ export const reviewLeaveApplication = async (req, res) => {
           `Your leave request for ${leave.startDate} to ${
             leave.endDate || leave.startDate
           } (${leave.numberOfDays} day(s)) has been ${status}.`,
-          `Reviewer note: ${review || "No note provided"}`,
+          `Reviewer note: ${note || reason || "No note provided"}`,
           `If approved: Thank you.`,
           `If rejected: Please contact your manager for details.`,
         ].join("\n\n");
@@ -351,6 +392,30 @@ export const getLeaveHistoryForUser = async (req, res) => {
     return res.status(200).json(leaves);
   } catch (error) {
     console.error("Error fetching leave history:", error);
+    res.status(500).json({
+      message: "Unable to proceed right now, contact System Administrator",
+    });
+  }
+};
+
+export const getPendingLeaves = async (req, res) => {
+  try {
+    const { page = 1, limit = 5 } = req.query;
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { appliedAt: -1 },
+      populate: {
+        path: "user",
+        select: "name email",
+      },
+    };
+
+    const pendingLeaves = await Leave.paginate({ status: "pending" }, options);
+
+    return res.status(200).json(pendingLeaves);
+  } catch (error) {
+    console.error("Error fetching pending leaves:", error);
     res.status(500).json({
       message: "Unable to proceed right now, contact System Administrator",
     });
