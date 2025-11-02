@@ -421,3 +421,22 @@ export const getPendingLeaves = async (req, res) => {
     });
   }
 };
+
+export const getAllUpcomingApprovedLeaves = async (req, res) => {
+  try {
+    const today = new Date();
+    const leaves = await Leave.find({
+      status: "approved",
+      startDate: { $gte: today },
+    })
+      .populate("user", "name email")
+      .sort({ startDate: 1 });
+
+    return res.status(200).json(leaves);
+  } catch (error) {
+    console.error("Error fetching upcoming approved leaves:", error);
+    res.status(500).json({
+      message: "Unable to proceed right now, contact System Administrator",
+    });
+  }
+};

@@ -25,6 +25,8 @@ router.get("/analytics/admin", auth, isAdmin, getAdminAnalytics);
 
 router.get("/pending", auth, isAdmin, getPendingLeaves);
 
+router.get("/upcoming", auth, isAdmin, getPendingLeaves);
+
 // Get all Leave Categories
 router.get("/categories", auth, getAllLeaveCategories);
 
