@@ -45,7 +45,36 @@ export const setTotalLeavesByCategory = async (req, res) => {
   }
 };
 
-export const setTotalAnnualLeaves = async (req, res) => {};
+export const setTotalAnnualLeaves = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { totalAnnualLeaves } = req.body;
+    if (totalAnnualLeaves == null || totalAnnualLeaves < 0) {
+      return res.status(400).json({
+        message: "Total annual leaves must be a non-negative number",
+      });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    let doc = await TotalAnnualLeaves.findOne();
+    if (doc) {
+      await TotalAnnualLeaves.updateOne(
+        { _id: doc._id },
+        { $set: { totalAnnualLeaves } }
+      );
+    } else {
+      await TotalAnnualLeaves.create({ totalAnnualLeaves });
+    }
+    return res
+      .status(200)
+      .json({ message: "Total annual leaves updated successfully" });
+  } catch (error) {
+    console.error("Error setting total annual leaves:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 //Create Leaves Cateegory - only admin/superadmin can do this
 export const createLeaveCategory = async (req, res) => {

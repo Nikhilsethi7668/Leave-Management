@@ -10,12 +10,9 @@ const AdminDashboard = () => {
         getAdminAnalytics,
         pendingLeaves,
         getPendingLeaves,
-        updateAnnualLeaveQuota,
-        leaveCategories,
-        loadLeaveCategories,
+        updateTotalAnnualLeave,
     } = useLeaveStore();
-    const [departmentId, setDepartmentId] = useState("");
-    const [quota, setQuota] = useState("");
+    const [annualLeave, setAnnualLeave] = useState("");
     const [updating, setUpdating] = useState(false);
     const { loading, setLoading } = useUIStore();
 
@@ -23,10 +20,9 @@ const AdminDashboard = () => {
         setLoading(true);
         Promise.all([
             getAdminAnalytics(),
-            getPendingLeaves(1, 5),
-            loadLeaveCategories()
+            getPendingLeaves(1, 5)
         ]).finally(() => setLoading(false));
-    }, [getAdminAnalytics, getPendingLeaves, setLoading, loadLeaveCategories]);
+    }, [getAdminAnalytics, getPendingLeaves, setLoading]);
 
     if (loading) {
         return (
@@ -41,42 +37,31 @@ const AdminDashboard = () => {
             <h1 className="text-3xl font-bold text-purple-800 mb-8">Admin Dashboard</h1>
 
             <div className="mb-8 p-4 bg-white rounded shadow">
-                <h2 className="text-xl font-semibold mb-4 text-blue-700">Update Annual Leave Quota</h2>
+                <h2 className="text-xl font-semibold mb-4 text-blue-700">Update Total Annual Leave</h2>
                 <form
                     className="flex flex-col md:flex-row gap-4 items-center"
                     onSubmit={async (e) => {
                         e.preventDefault();
-                        if (!departmentId || !quota) {
-                            alert("Please select department and enter quota");
+                        if (!annualLeave) {
+                            alert("Please enter total annual leave");
                             return;
                         }
                         setUpdating(true);
                         try {
-                            await updateAnnualLeaveQuota(departmentId, Number(quota));
-                            setQuota("");
+                            await updateTotalAnnualLeave(Number(annualLeave));
+                            setAnnualLeave("");
                         } finally {
                             setUpdating(false);
                         }
                     }}
                 >
-                    <select
-                        value={departmentId}
-                        onChange={e => setDepartmentId(e.target.value)}
-                        className="border p-2 rounded min-w-[180px]"
-                        required
-                    >
-                        <option value="">Select Department</option>
-                        {leaveCategories.map(cat => (
-                            <option key={cat._id} value={cat._id}>{cat.name}</option>
-                        ))}
-                    </select>
                     <input
                         type="number"
                         min={0}
-                        value={quota}
-                        onChange={e => setQuota(e.target.value)}
-                        placeholder="Annual Paid Leaves"
-                        className="border p-2 rounded min-w-[120px]"
+                        value={annualLeave}
+                        onChange={e => setAnnualLeave(e.target.value)}
+                        placeholder="Total Annual Leaves"
+                        className="border p-2 rounded min-w-[180px]"
                         required
                     />
                     <button
@@ -84,7 +69,7 @@ const AdminDashboard = () => {
                         className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
                         disabled={updating}
                     >
-                        {updating ? "Updating..." : "Update Quota"}
+                        {updating ? "Updating..." : "Update"}
                     </button>
                 </form>
             </div>

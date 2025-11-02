@@ -5,6 +5,7 @@ import Department from "../Models/Department.js";
 import { generateToken } from "../Middlewares/auth.middleware.js";
 import LeaveAnalytics from "../Models/LeaveAnalytics.js";
 import TotalLeaves from "../Models/TotalLeaves.js";
+import TotalAnnualLeaves from "../Models/TotalAnnualLeaves.js";
 
 //THIS WILL HELP US TO REGISTER NEW USER
 export const signup = async (req, res) => {
@@ -119,7 +120,9 @@ export const approveUser = async (req, res) => {
     }
     user.isActive = true;
     await user.save();
-    const totalLeaveData = await TotalLeaves.findOne().sort({ createdAt: -1 });
+    const totalLeaveData = await TotalAnnualLeaves.findOne().sort({
+      createdAt: -1,
+    });
 
     const leaveAnalytics = await LeaveAnalytics.findOne({ user: user._id });
     if (!leaveAnalytics) {

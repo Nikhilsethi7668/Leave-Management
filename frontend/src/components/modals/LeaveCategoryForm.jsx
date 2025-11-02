@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 
+
+import { useLeaveStore } from '../../utils/stores/useLeaveStore';
+
 const LeaveCategoryForm = ({ onSubmit, onClose, loading }) => {
     const [name, setName] = useState('');
     const [bonusLeaves, setBonusLeaves] = useState('');
     const [description, setDescription] = useState('');
+    const [quota, setQuota] = useState('');
+    const [quotaLoading, setQuotaLoading] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -13,6 +18,8 @@ const LeaveCategoryForm = ({ onSubmit, onClose, loading }) => {
             description,
         });
     };
+
+
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
@@ -29,8 +36,9 @@ const LeaveCategoryForm = ({ onSubmit, onClose, loading }) => {
                             required
                         />
                     </div>
+
                     <div className="mb-4">
-                        <label className="block mb-1 font-medium">Bonus Leaves (optional)</label>
+                        <label className="block mb-1 font-medium">Bonus Leaves</label>
                         <input
                             type="number"
                             className="w-full border rounded px-3 py-2"

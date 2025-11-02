@@ -1,21 +1,21 @@
+// ...existing code...
 import { create } from "zustand";
 import api from "../axiosInstance";
 
 export const useLeaveStore = create((set, get) => ({
-  updateAnnualLeaveQuota: async (departmentId, totalAnnualPaidLeaves) => {
+  updateTotalAnnualLeave: async (totalAnnualLeaves) => {
     try {
-      const { data } = await api.post("/leaves/setTotalLeaves", {
-        departmentId,
-        totalAnnualPaidLeaves,
+      const { data } = await api.post("/leaves/setTotalAnnualLeaves", {
+        totalAnnualLeaves,
       });
-      alert(data.message || "Annual leave quota updated successfully!");
+      alert(data.message || "Total annual leave updated successfully!");
       await get().getAdminAnalytics();
       return data;
     } catch (error) {
       const msg =
         error?.response?.data?.message ||
         error?.message ||
-        "Failed to update leave quota";
+        "Failed to update total annual leave";
       alert(msg);
       throw error;
     }
