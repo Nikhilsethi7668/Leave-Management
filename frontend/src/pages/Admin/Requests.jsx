@@ -17,6 +17,7 @@ const Requests = () => {
 
   useEffect(() => {
     getPendingLeaves(page);
+    console.log(pendingLeaves)
   }, [page, getPendingLeaves]);
 
   return (

@@ -3,21 +3,23 @@ import { useLeaveStore } from '../../utils/stores/useLeaveStore';
 import { useUIStore } from '../../utils/stores/useUIStore';
 import StatCard from '../../components/dashboard/StatCard';
 import PendingRequestsList from '../../components/admin/PendingRequestsList';
-import SimpleBarChart from '../../components/admin/SimpleBarChart';
 
 const AdminDashboard = () => {
     const {
         adminAnalytics,
-        getAdminAnalytics
+        getAdminAnalytics,
+        pendingLeaves,
+        getPendingLeaves
     } = useLeaveStore();
     const { loading, setLoading } = useUIStore();
 
     useEffect(() => {
         setLoading(true);
-        getAdminAnalytics().finally(() => setLoading(false));
-    }, [getAdminAnalytics, setLoading]);
-
-    const chartData = adminAnalytics?.leaveTrends?.map(item => ({ label: item.month, value: item.count })) || [];
+        Promise.all([
+            getAdminAnalytics(),
+            getPendingLeaves(1, 5)
+        ]).finally(() => setLoading(false));
+    }, [getAdminAnalytics, getPendingLeaves, setLoading]);
 
     if (loading) {
         return (
@@ -34,37 +36,32 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard
                     title="Total Employees"
-                    value={adminAnalytics?.totalEmployees || 0}
+                    value={adminAnalytics?.totalUsers || 0}
                     subtitle="Active in system"
                     colorClass="border-blue-500"
                 />
                 <StatCard
                     title="Pending Requests"
-                    value={adminAnalytics?.pendingRequestsCount || 0}
+                    value={adminAnalytics?.totalLeavesPending || 0}
                     subtitle="Awaiting review"
                     colorClass="border-yellow-500"
                 />
                 <StatCard
-                    title="Approved Today"
-                    value={adminAnalytics?.approvedTodayCount || 0}
-                    subtitle="Leaves approved today"
+                    title="Total Approved"
+                    value={adminAnalytics?.totalLeavesApproved || 0}
+                    subtitle="Total approved leaves"
                     colorClass="border-green-500"
                 />
                 <StatCard
                     title="Upcoming Leaves"
-                    value={adminAnalytics?.upcomingLeavesCount || 0}
-                    subtitle="In the next 7 days"
+                    value={adminAnalytics?.totalUpcomingApprovedLeaves || 0}
+                    subtitle="Approved upcoming leaves"
                     colorClass="border-red-500"
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <SimpleBarChart data={chartData} title="Monthly Leave Trends" />
-                </div>
-                <div>
-                    <PendingRequestsList requests={adminAnalytics?.latestPendingRequests} />
-                </div>
+            <div className="mt-6">
+                <PendingRequestsList requests={pendingLeaves?.docs || []} />
             </div>
         </div>
     );

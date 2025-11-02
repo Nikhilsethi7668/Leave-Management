@@ -20,13 +20,15 @@ const PendingRequestsList = ({ requests }) => {
             </div>
             <ul className="divide-y divide-gray-200">
                 {requests.slice(0, 5).map(req => (
-                    <li key={req._id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-                        <div>
-                            <p className="font-medium text-gray-800">{req.user.name}</p>
-                            <p className="text-sm text-gray-500 capitalize">{req.leaveType} Leave</p>
-                        </div>
-                        <FiChevronRight className="text-gray-400" />
-                    </li>
+                    <Link to="/admin/requests" key={req._id}>
+                        <li className="p-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer">
+                            <div>
+                                <p className="font-medium text-gray-800">{req.user.name}</p>
+                                <p className="text-sm text-gray-500 capitalize">{req.leaveType} Leave</p>
+                            </div>
+                            <FiChevronRight className="text-gray-400" />
+                        </li>
+                    </Link>
                 ))}
             </ul>
         </div>
