@@ -259,7 +259,7 @@ export const applyForLeave = async (req, res) => {
           leaveAnalytics?.paidLeavesRemaining || 0
         }, Bonus: ${
           leaveCategory.bonusLeaves || 0
-        }) are available for this category. Please reduce days or apply for unpaid leave.`,
+        }) are available for  ${leaveCategory.name}. Please reduce days or apply for unpaid leave.`,
       });
     }
 

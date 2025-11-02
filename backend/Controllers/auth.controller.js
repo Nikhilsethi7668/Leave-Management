@@ -128,12 +128,11 @@ export const approveUser = async (req, res) => {
     if (!leaveAnalytics) {
       await LeaveAnalytics.create({
         user: user._id,
-        totalLeavesAllocated: totalLeaveData?.totalAnnualPaidLeaves,
+        totalLeavesAllocated: totalLeaveData?.annualLeaves,
         totalLeavesTaken: 0,
         totalPaidLeavesTaken: 0,
         totalUnpaidLeavesTaken: 0,
-        // paidLeavesRemaining: totalLeaveData?.totalAnnualPaidLeaves,
-        leavesRemaining: totalLeaveData?.totalAnnualPaidLeaves,
+        paidLeavesRemaining: totalLeaveData?.annualLeaves,
         lastUpdated: new Date(),
       });
     }
