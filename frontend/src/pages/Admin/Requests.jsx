@@ -32,6 +32,7 @@ const Requests = () => {
               <th className="py-2 px-4 border-b">Duration</th>
               <th className="py-2 px-4 border-b">Dates</th>
               <th className="py-2 px-4 border-b">Days</th>
+              <th className="py-2 px-4 border-b">Category</th>
               <th className="py-2 px-4 border-b">Actions</th>
             </tr>
           </thead>
@@ -47,6 +48,7 @@ const Requests = () => {
                   }
                 </td>
                 <td className="py-2 px-4 border-b">{request.numberOfDays}</td>
+                <td className="py-2 px-4 border-b">{request.category?.name || '-'}</td>
                 <td className="py-2 px-4 border-b">
                   <button
                     onClick={() => openModal(request, 'approved')}

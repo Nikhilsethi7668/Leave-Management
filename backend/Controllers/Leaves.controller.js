@@ -46,14 +46,8 @@ export const setTotalLeaves = async (req, res) => {
 //Create Leaves Cateegory - only admin/superadmin can do this
 export const createLeaveCategory = async (req, res) => {
   try {
-    const { name, description, bonusLeaves } = req.body;
-    if (
-      !name ||
-      name.trim() === "" ||
-      !bonusLeaves ||
-      bonusLeaves == null ||
-      bonusLeaves < 0
-    ) {
+    const { name, description, bonusLeaves = 0 } = req.body;
+    if (!name || name.trim() === "" || bonusLeaves < 0) {
       return res
         .status(400)
         .json({ message: "Name and valid bonus leaves are required" });
@@ -76,6 +70,36 @@ export const createLeaveCategory = async (req, res) => {
       .json({ message: "Leave category created successfully" });
   } catch (error) {
     console.error("Error creating leave category:", error);
+    res.status(500).json({
+      message: "Unable to proceed right now, contact System Administrator",
+    });
+  }
+};
+
+//Delete Leave Category - only admin/superadmin can do this
+
+export const deleteLeaveCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    if (!user || !["admin", "superAdmin"].includes(user.role)) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to delete this category" });
+    }
+    const category = await LeaveCategory.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Leave category not found" });
+    }
+
+    await LeaveCategory.findByIdAndDelete(categoryId);
+
+    return res
+      .status(200)
+      .json({ message: "Leave category deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting leave category:", error);
     res.status(500).json({
       message: "Unable to proceed right now, contact System Administrator",
     });
@@ -135,7 +159,8 @@ export const getAllLeaveCategories = async (req, res) => {
 //Get full leave analysis for a user - accessible to admin/superadmin and the user themselves
 export const getLeaveAnalyticsForUser = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id;
+    console.log("User ID in analytics request:", userId);
 
     const leaveAnalytics = await LeaveAnalytics.findOne({
       user: userId,
@@ -166,6 +191,8 @@ export const applyForLeave = async (req, res) => {
       description,
       requestForPaidLeave,
     } = req.body;
+    const userId = req.user.id;
+    console.log(userId);
 
     if (
       !leaveType ||
@@ -182,7 +209,28 @@ export const applyForLeave = async (req, res) => {
         .json({ message: "Half-day period must be specified" });
     }
 
-    const userId = req.user.id;
+    const leaveAnalytics = await LeaveAnalytics.findOne({ user: userId });
+    const leaveCategory = await LeaveCategory.findById(category);
+    if (!leaveCategory) {
+      return res.status(400).json({ message: "Invalid leave category" });
+    }
+
+    // Calculate total available: paidLeavesRemaining + bonusLeaves
+    const totalAvailable =
+      (leaveAnalytics?.paidLeavesRemaining || 0) +
+      (leaveCategory.bonusLeaves || 0);
+
+    if (leaveType === "paid" && numberOfDays > totalAvailable) {
+      return res.status(400).json({
+        message: `You requested ${numberOfDays} days, but only ${totalAvailable} (Paid: ${
+          leaveAnalytics?.paidLeavesRemaining || 0
+        }, Bonus: ${
+          leaveCategory.bonusLeaves || 0
+        }) are available for this category. Please reduce days or apply for unpaid leave.`,
+      });
+    }
+
+    // const userId = req.user.id;
     // minimal user info for email content
     const applicant = await User.findById(userId).select(
       "name email post Department"
@@ -205,45 +253,6 @@ export const applyForLeave = async (req, res) => {
     });
 
     await newLeave.save();
-
-    // notify admins + superAdmins
-    try {
-      const admins = await User.find({
-        role: { $in: ["admin", "superAdmin"] },
-      }).select("email name");
-      const adminEmails = admins.map((a) => a.email).filter(Boolean);
-
-      if (adminEmails.length > 0) {
-        const subject = `New leave request from ${
-          applicant?.name || "Employee"
-        }`;
-        const text = [
-          `Applicant: ${applicant?.name || "N/A"} (${
-            applicant?.email || "N/A"
-          })`,
-          `Post/Dept: ${applicant?.post || ""}`,
-          `Type: ${leaveType}`,
-          `Duration: ${durationType}`,
-          `Start: ${startDate}`,
-          `End: ${endDate || startDate}`,
-          `Days: ${numberOfDays}`,
-          `Reason: ${description || "No reason provided"}`,
-          `Status: Pending`,
-        ].join("\n");
-
-        // send but don't block success response if it fails
-        await sendEmail({
-          to: adminEmails,
-          subject,
-          text,
-          category: "Leave Request",
-        });
-      }
-    } catch (emailErr) {
-      console.error("Failed sending leave-notification to admins:", emailErr);
-      // do not fail the API; just log
-    }
-
     return res.status(201).json({ message: "Leave application submitted" });
   } catch (error) {
     console.error("Error applying for leave:", error);
@@ -303,21 +312,29 @@ export const reviewLeaveApplication = async (req, res) => {
       });
 
       if (leaveAnalytics) {
+        // If category has bonus leaves, allocate them on approval
+        let bonusAllocated = 0;
+        if (leave.category && leave.category.bonusLeaves) {
+          bonusAllocated = leave.category.bonusLeaves;
+          leaveAnalytics.totalLeavesAllocated =
+            (leaveAnalytics.totalLeavesAllocated || 0) + bonusAllocated;
+        }
         leaveAnalytics.totalLeavesTaken =
           (leaveAnalytics.totalLeavesTaken || 0) + (leave.numberOfDays || 0);
-        if (leave.category && leave.category.bonusLeaves) {
-          leaveAnalytics.totalLeavesAllocated =
-            (leaveAnalytics.totalLeavesAllocated || 0) +
-            leave.category.bonusLeaves;
-        }
-        if (leave.leaveType === "paid") {
+
+        if (isPaid === true) {
           leaveAnalytics.totalPaidLeavesTaken =
             (leaveAnalytics.totalPaidLeavesTaken || 0) +
             (leave.numberOfDays || 0);
+          // Add bonus to paidLeavesRemaining before subtracting used
+          if (bonusAllocated > 0) {
+            leaveAnalytics.paidLeavesRemaining =
+              (leaveAnalytics.paidLeavesRemaining || 0) + bonusAllocated;
+          }
           leaveAnalytics.paidLeavesRemaining =
-            (leaveAnalytics.totalLeavesAllocated || 0) -
-            (leaveAnalytics.totalPaidLeavesTaken || 0);
-        } else if (leave.leaveType === "unpaid") {
+            (leaveAnalytics.paidLeavesRemaining || 0) -
+            (leave.numberOfDays || 0);
+        } else {
           leaveAnalytics.totalUnpaidLeavesTaken =
             (leaveAnalytics.totalUnpaidLeavesTaken || 0) +
             (leave.numberOfDays || 0);
@@ -333,36 +350,6 @@ export const reviewLeaveApplication = async (req, res) => {
     leave.reviewer = req.user.id;
     leave.reviewedAt = new Date();
     await leave.save();
-
-    // notify the candidate about the decision
-    try {
-      const recipient = leave.user?.email;
-      if (recipient) {
-        const subject = `Your leave request has been ${status}`;
-        const text = [
-          `Hi ${leave.user?.name || ""},`,
-          `Your leave request for ${leave.startDate} to ${
-            leave.endDate || leave.startDate
-          } (${leave.numberOfDays} day(s)) has been ${status}.`,
-          `Reviewer note: ${note || reason || "No note provided"}`,
-          `If approved: Thank you.`,
-          `If rejected: Please contact your manager for details.`,
-        ].join("\n\n");
-
-        await sendEmail({
-          to: [recipient],
-          subject,
-          text,
-          category: "Leave Review",
-        });
-      }
-    } catch (emailErr) {
-      console.error(
-        "Failed sending leave-review email to candidate:",
-        emailErr
-      );
-    }
-
     return res
       .status(200)
       .json({ message: "Leave application reviewed successfully" });
@@ -411,8 +398,25 @@ export const getPendingLeaves = async (req, res) => {
       },
     };
 
-    const pendingLeaves = await Leave.paginate({ status: "pending" }, options);
+    // Populate category name for each leave
+    const pendingLeaves = await Leave.paginate(
+      { status: "pending" },
+      {
+        ...options,
+        populate: [
+          { path: "user", select: "name email" },
+          { path: "category", select: "name" },
+        ],
+      }
+    );
 
+    // Ensure category name is present in each doc
+    if (pendingLeaves.docs) {
+      pendingLeaves.docs = pendingLeaves.docs.map((l) => ({
+        ...l.toObject(),
+        category: l.category ? { name: l.category.name } : null,
+      }));
+    }
     return res.status(200).json(pendingLeaves);
   } catch (error) {
     console.error("Error fetching pending leaves:", error);
@@ -422,19 +426,79 @@ export const getPendingLeaves = async (req, res) => {
   }
 };
 
-export const getAllUpcomingApprovedLeaves = async (req, res) => {
+export const getAllUpcomingLeave = async (req, res) => {
   try {
+    const { page = 1, limit = 5 } = req.query;
     const today = new Date();
-    const leaves = await Leave.find({
-      status: "approved",
-      startDate: { $gte: today },
-    })
-      .populate("user", "name email")
-      .sort({ startDate: 1 });
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { startDate: 1 },
+      populate: {
+        path: "user",
+        select: "name email",
+      },
+    };
+    // Populate category name for each leave
+    const upcomingLeaves = await Leave.paginate(
+      { status: "approved", startDate: { $gte: today } },
+      {
+        ...options,
+        populate: [
+          { path: "user", select: "name email" },
+          { path: "category", select: "name" },
+        ],
+      }
+    );
 
-    return res.status(200).json(leaves);
+    // Ensure category name is present in each doc
+    if (upcomingLeaves.docs) {
+      upcomingLeaves.docs = upcomingLeaves.docs.map((l) => ({
+        ...l.toObject(),
+        category: l.category ? { name: l.category.name } : null,
+      }));
+    }
+    return res.status(200).json(upcomingLeaves);
   } catch (error) {
-    console.error("Error fetching upcoming approved leaves:", error);
+    console.error("Error fetching upcoming leaves:", error);
+    res.status(500).json({
+      message: "Unable to proceed right now, contact System Administrator",
+    });
+  }
+};
+
+//User can delete his pending leave application
+export const deleteLeaveApplication = async (req, res) => {
+  try {
+    const { leaveId } = req.params;
+    const userId = req.user.id;
+    console.log(userId);
+
+    const leave = await Leave.findById(leaveId);
+    if (!leave) {
+      return res.status(404).json({ message: "Leave application not found" });
+    }
+
+    if (leave.user.toString() !== userId) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to delete this leave" });
+    }
+    console.log(leave.status);
+
+    if (leave.status !== "pending") {
+      return res
+        .status(400)
+        .json({ message: "Only pending leave applications can be deleted" });
+    }
+
+    await Leave.findByIdAndDelete(leaveId);
+
+    return res
+      .status(200)
+      .json({ message: "Leave application deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting leave application:", error);
     res.status(500).json({
       message: "Unable to proceed right now, contact System Administrator",
     });

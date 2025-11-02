@@ -1,11 +1,22 @@
 // src/stores/useLeaveStore.js
-import { create } from 'zustand';
-import api from '../axiosInstance';
+import { create } from "zustand";
+import api from "../axiosInstance";
 
 export const useLeaveStore = create((set, get) => ({
+  createLeaveCategory: async (payload) => {
+    const { data } = await api.post("/leaves/categories", payload);
+    await get().loadLeaveCategories();
+    return data;
+  },
+
+  deleteLeaveCategory: async (categoryId) => {
+    await api.delete(`/leaves/categories/${categoryId}`);
+    await get().loadLeaveCategories();
+  },
   myLeaves: [],
   allLeaves: [],
   pendingLeaves: { docs: [], totalPages: 1 },
+  upcomingApprovedLeaves: { docs: [], totalPages: 1, page: 1 },
   userLeaveAnalytics: {},
   adminAnalytics: {},
   leaveCategories: [],
@@ -14,13 +25,24 @@ export const useLeaveStore = create((set, get) => ({
   selectedRequest: null,
   page: 1,
   selectedLeaveType: null,
+  getUpcomingApprovedLeaves: async (page = 1, limit = 5) => {
+    try {
+      const { data } = await api.get(
+        `/leaves/upcoming?page=${page}&limit=${limit}`
+      );
+      set({ upcomingApprovedLeaves: data });
+    } catch (error) {
+      console.error("Failed to load upcoming approved leaves:", error);
+      set({ upcomingApprovedLeaves: { docs: [], totalPages: 1, page: 1 } });
+    }
+  },
 
   getAdminAnalytics: async () => {
     try {
-      const { data } = await api.get('/leaves/analytics/admin');
+      const { data } = await api.get("/leaves/analytics/admin");
       set({ adminAnalytics: data });
     } catch (error) {
-      console.error('Failed to load admin analytics:', error);
+      console.error("Failed to load admin analytics:", error);
       set({ adminAnalytics: {} });
     }
   },
@@ -32,13 +54,13 @@ export const useLeaveStore = create((set, get) => ({
       );
       set({ pendingLeaves: data, page });
     } catch (error) {
-      console.error('Failed to load pending leaves:', error);
+      console.error("Failed to load pending leaves:", error);
       set({ pendingLeaves: { docs: [], totalPages: 1 } });
     }
   },
 
   apply: async (payload) => {
-    await api.post('/leaves/apply', payload);
+    await api.post("/leaves/apply", payload);
   },
 
   loadMyLeaves: async (userId) => {
@@ -47,17 +69,17 @@ export const useLeaveStore = create((set, get) => ({
   },
 
   loadLeaveCategories: async () => {
-    const r = await api.get('/leaves/categories');
+    const r = await api.get("/leaves/categories");
     set({ leaveCategories: r.data || r });
   },
 
   loadAnalytics: async (userId) => {
-    const r = await api.get(`/leaves/analytics/${userId}`);
+    const r = await api.get(`/leaves/user/analytics`);
     set({ userLeaveAnalytics: r.data || r });
   },
 
   deleteLeave: async (leaveId) => {
-    await api.delete(`/leaves/${leaveId}`);
+    await api.delete(`/leaves/leave/${leaveId}`);
     set((s) => ({
       myLeaves: s.myLeaves.filter((leave) => leave._id !== leaveId),
     }));
@@ -113,25 +135,26 @@ export const useLeaveStore = create((set, get) => ({
       });
       await loadMyLeaves(user._id);
       set({ selectedLeaveType: null });
-      alert('Leave application submitted successfully!');
-      navigate('/history');
+      alert("Leave application submitted successfully!");
+      navigate("/history");
     } catch (error) {
-      console.error('Error applying for leave:', error);
-      alert('Failed to submit leave application. Please try again.');
+      console.error("Error applying for leave:", error.response.data.message);
+      alert(error.response.data.message);
     }
   },
 
   deleteApplication: async (leaveId) => {
     const { deleteLeave } = get();
-    if (window.confirm('Are you sure you want to delete this leave application?')) {
+    if (
+      window.confirm("Are you sure you want to delete this leave application?")
+    ) {
       try {
         await deleteLeave(leaveId);
-        alert('Leave application deleted successfully!');
+        alert("Leave application deleted successfully!");
       } catch (error) {
-        console.error('Error deleting leave:', error);
-        alert('Failed to delete leave application. Please try again.');
+        console.error("Error deleting leave:", error);
+        alert("Failed to delete leave application. Please try again.");
       }
     }
   },
 }));
-

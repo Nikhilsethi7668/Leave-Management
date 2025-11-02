@@ -161,3 +161,15 @@ export const deactivateUser = async (req, res) => {
     });
   }
 };
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password").populate("department");
+    return res.status(200).json({ users });
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    res.status(500).json({
+      message: "Unable to proceed right now, contact System Administrator",
+    });
+  }
+};

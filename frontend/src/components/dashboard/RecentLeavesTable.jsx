@@ -12,6 +12,7 @@ const RecentLeavesTable = ({ leaves }) => {
                     <tr className="bg-gray-50">
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     </tr>
@@ -28,6 +29,7 @@ const RecentLeavesTable = ({ leaves }) => {
                                     {start.toLocaleDateString()} - {end.toLocaleDateString()}
                                 </td>
                                 <td className="px-4 py-3 capitalize">{leave.leaveType}</td>
+                                <td className="px-4 py-3 text-blue-700">{leave.category?.name || '-'}</td>
                                 <td className="px-4 py-3">{duration} day{duration !== 1 ? 's' : ''}</td>
                                 <td className="px-4 py-3">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${leave.status === 'approved' ? 'bg-green-100 text-green-800' :

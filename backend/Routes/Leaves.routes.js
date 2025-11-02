@@ -11,6 +11,9 @@ import {
   getLeaveHistoryForUser,
   getAdminAnalytics,
   getPendingLeaves,
+  getAllUpcomingLeave,
+  deleteLeaveApplication,
+  deleteLeaveCategory,
 } from "../Controllers/Leaves.controller.js";
 import { auth, isAdmin } from "../Middlewares/auth.middleware.js";
 
@@ -20,12 +23,17 @@ router.post("/total-leaves", auth, isAdmin, setTotalLeaves);
 // Create Leave Category - only admin/superadmin can do this
 router.post("/categories", auth, isAdmin, createLeaveCategory);
 
+//Delete Leave Category - only admin/superadmin can do this
+router.delete("/categories/:categoryId", auth, isAdmin, deleteLeaveCategory);
+
 // Get Admin Analytics]
 router.get("/analytics/admin", auth, isAdmin, getAdminAnalytics);
 
 router.get("/pending", auth, isAdmin, getPendingLeaves);
 
-router.get("/upcoming", auth, isAdmin, getPendingLeaves);
+router.get("/upcoming", auth, isAdmin, getAllUpcomingLeave);
+
+router.delete("/leave/:leaveId", auth, deleteLeaveApplication);
 
 // Get all Leave Categories
 router.get("/categories", auth, getAllLeaveCategories);
@@ -42,6 +50,6 @@ router.post("/review/:leaveId", auth, isAdmin, reviewLeaveApplication);
 router.get("/history/:userId", auth, getLeaveHistoryForUser);
 
 // Get Leave Analytics for a specific user
-router.get("/analytics/:userId", auth, getLeaveAnalyticsForUser);
+router.get("/user/analytics", auth, getLeaveAnalyticsForUser);
 
 export default router;

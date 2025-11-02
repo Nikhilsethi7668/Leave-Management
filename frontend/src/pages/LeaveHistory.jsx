@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
+import { FiTrash2 } from 'react-icons/fi';
 import { useAuthStore } from '../utils/stores/useAuthStore';
 import { useLeaveStore } from '../utils/stores/useLeaveStore';
 import { useUIStore } from '../utils/stores/useUIStore';
 
 export default function LeaveHistory() {
   const user = useAuthStore((s) => s.user);
-  const { myLeaves, loadMyLeaves } = useLeaveStore();
+  const { myLeaves, loadMyLeaves, deleteApplication } = useLeaveStore();
   const { loading, setLoading } = useUIStore();
 
   useEffect(() => {
@@ -29,14 +30,28 @@ export default function LeaveHistory() {
       <div className="bg-white p-4 rounded shadow">
         <ul>
           {(myLeaves || []).map((l) => (
-            <li key={l._id} className="py-2 border-b flex justify-between">
+            <li key={l._id} className="py-2 border-b flex justify-between items-center">
               <div>
                 <div>
                   {new Date(l.startDate).toLocaleDateString()} — {l.durationType}
                 </div>
                 <div className="text-sm text-gray-500">{l.description}</div>
+                {l.category?.name && (
+                  <div className="text-xs text-blue-600 mt-1">Category: {l.category.name}</div>
+                )}
               </div>
-              <div className="text-sm">{l.status}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{l.status}</span>
+                {l.status === 'pending' && (
+                  <button
+                    title="Delete pending leave"
+                    onClick={() => deleteApplication(l._id)}
+                    className="ml-2"
+                  >
+                    <FiTrash2 className="text-red-500 hover:text-red-700" size={20} />
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>

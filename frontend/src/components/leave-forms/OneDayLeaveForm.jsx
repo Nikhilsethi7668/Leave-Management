@@ -27,6 +27,8 @@ const OneDayLeaveForm = ({ categories, onSubmit, onCancel }) => {
         }));
     };
 
+    const selectedCategory = categories.find(cat => cat._id === formData.category);
+
     return (
         <div className="bg-white p-6 rounded-lg shadow-md border">
             <h3 className="text-lg font-semibold mb-4">One Day Leave Application</h3>
@@ -63,6 +65,11 @@ const OneDayLeaveForm = ({ categories, onSubmit, onCancel }) => {
                             </option>
                         ))}
                     </select>
+                    {selectedCategory && (
+                        <div className="mt-2 text-sm text-blue-700">
+                            Bonus Leaves: <strong>{selectedCategory.bonusLeaves || 0}</strong>
+                        </div>
+                    )}
                 </div>
 
                 <div>

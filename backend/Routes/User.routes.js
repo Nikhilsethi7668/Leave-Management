@@ -7,6 +7,7 @@ import {
   deactivateUser,
   logout,
   me,
+  getAllUsers,
 } from "../Controllers/auth.controller.js";
 import { auth, isAdmin } from "../Middlewares/auth.middleware.js";
 
@@ -17,4 +18,5 @@ router.get("/me", auth, me);
 router.patch("/approve/:userId", auth, isAdmin, approveUser);
 router.patch("/deactivate/:userId", auth, isAdmin, deactivateUser);
 
+router.get("/getAllUsers", auth, isAdmin, getAllUsers);
 export default router;
