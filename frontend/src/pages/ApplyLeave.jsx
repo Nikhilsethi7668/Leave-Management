@@ -1,4 +1,3 @@
-// src/pages/ApplyLeave.jsx
 import React, { useEffect } from 'react';
 import { useAuthStore } from '../utils/stores/useAuthStore';
 import { useLeaveStore } from '../utils/stores/useLeaveStore';

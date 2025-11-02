@@ -26,7 +26,7 @@ function App() {
         {/* <Route path="departments" element={<Department />} /> */}
       </Route>
 
-      {/* Admin Routes */}
+      // Admin Routes
       <Route path="/admin" element={<AdminRoute><MainLayout /></AdminRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="requests" element={<Requests />} />

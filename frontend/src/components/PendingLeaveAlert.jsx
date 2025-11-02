@@ -1,4 +1,3 @@
-// src/components/PendingLeaveAlert.jsx
 import React from "react";
 import { useLeaveStore } from "../utils/stores/useLeaveStore";
 

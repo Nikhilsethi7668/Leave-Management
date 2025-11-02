@@ -1,4 +1,3 @@
-// src/components/leave-forms/HalfDayLeaveForm.jsx
 import React, { useState } from "react";
 
 const HalfDayLeaveForm = ({ categories, onSubmit, onCancel }) => {

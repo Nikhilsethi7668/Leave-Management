@@ -1,4 +1,3 @@
-// src/pages/admin/CreateLeaveCategory.jsx
 import React, { useState, useEffect } from 'react';
 import { useLeaveStore } from '../../utils/stores/useLeaveStore';
 import LeaveCategoryForm from '../../components/modals/LeaveCategoryForm';

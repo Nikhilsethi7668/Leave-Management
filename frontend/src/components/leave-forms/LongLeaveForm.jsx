@@ -1,4 +1,3 @@
-// src/components/leave-forms/LongLeaveForm.jsx
 import React, { useState } from "react";
 
 const LongLeaveForm = ({ categories, onSubmit, onCancel }) => {

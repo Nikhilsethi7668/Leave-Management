@@ -1,4 +1,3 @@
-// src/stores/useDepartmentStore.js
 import { create } from 'zustand';
 import api from '../axiosInstance';
 
