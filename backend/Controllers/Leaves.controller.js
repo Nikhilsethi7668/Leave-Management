@@ -59,11 +59,13 @@ export const setTotalAnnualLeaves = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     let doc = await TotalAnnualLeaves.findOne();
+    console.log(doc);
     if (doc) {
       await TotalAnnualLeaves.updateOne(
         { _id: doc._id },
-        { $set: { totalAnnualLeaves } }
+        { $set: { annualLeaves: totalAnnualLeaves } }
       );
+      console.log(TotalAnnualLeaves);
     } else {
       await TotalAnnualLeaves.create({ totalAnnualLeaves });
     }
@@ -257,9 +259,9 @@ export const applyForLeave = async (req, res) => {
       return res.status(400).json({
         message: `You requested ${numberOfDays} days, but only ${totalAvailable} (Paid: ${
           leaveAnalytics?.paidLeavesRemaining || 0
-        }, Bonus: ${
-          leaveCategory.bonusLeaves || 0
-        }) are available for  ${leaveCategory.name}. Please reduce days or apply for unpaid leave.`,
+        }, Bonus: ${leaveCategory.bonusLeaves || 0}) are available for  ${
+          leaveCategory.name
+        }. Please reduce days or apply for unpaid leave.`,
       });
     }
 
