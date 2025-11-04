@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:5001/api",
+  baseURL: "https://leave-management-ncp0.onrender.com/api",
   withCredentials: true,
   timeout: 10000,
   headers: {
